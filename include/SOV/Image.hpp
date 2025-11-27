@@ -56,6 +56,8 @@ namespace SOV {
 
 		class View {
 		public:
+			friend Image;
+
 			enum class Type {
 				VIEW_1D         = VK_IMAGE_VIEW_TYPE_1D,
 				VIEW_2D         = VK_IMAGE_VIEW_TYPE_2D,
@@ -88,7 +90,11 @@ namespace SOV {
 
 			View& operator =(const View&) = delete;
 
-			View(const SOV::Image& Image, const Info& info);
+			View(const SOV::Image& Image) : Image(Image) {};
+
+			View(const SOV::Image& Image, const Info& info) : Image(Image) {
+				Recreate(info);
+			}
 
 			View(View&& Other) noexcept : Image(Other.Image) {
 				vkView = Other.vkView;
@@ -97,6 +103,8 @@ namespace SOV {
 			}
 
 			~View();
+
+			void Recreate(const Info& info);
 
 			operator VkImageView() const {
 				return vkView;
@@ -108,8 +116,16 @@ namespace SOV {
 
 		private:
 			VkImageView vkView = nullptr;
+		};
 
-			View(const SOV::Image& Image) : Image(Image) {};
+		struct SubresourceLayers {
+			AspectFlag aspectFlags;
+
+			unsigned mipLevel;
+
+			unsigned baseArrayLayer;
+
+			unsigned layerCount;
 		};
 
 		struct Info {
@@ -241,7 +257,11 @@ namespace SOV {
 
 		Sampler& operator =(const Sampler&) = delete;
 
-		Sampler(const SOV::Device& Device, const Info& info);
+		Sampler(const SOV::Device& Device) : Device(Device) {};
+
+		Sampler(const SOV::Device& Device, const Info& info) : Device(Device) {
+			Recreate(info);
+		}
 
 		Sampler(Sampler&& Other) noexcept : Device(Other.Device) {
 			vkSampler = Other.vkSampler;
@@ -250,6 +270,8 @@ namespace SOV {
 		}
 
 		~Sampler();
+
+		void Recreate(const Info& info);
 
 		operator VkSampler() const {
 			return vkSampler;

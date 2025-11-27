@@ -27,7 +27,7 @@ namespace SOV {
 		}
 
 		Set::Layout::Layout(const SOV::Device& Device, const ACTL::Array<Binding>& bindings) : Device(Device) {
-			const unsigned bindingCount = bindings.GetLength();
+			const unsigned bindingCount = (unsigned)bindings.GetLength();
 
 			VkDescriptorSetLayoutBinding* vkBindings = new VkDescriptorSetLayoutBinding[bindingCount];
 
@@ -91,7 +91,7 @@ namespace SOV {
 				throw Exception("Failed to allocate descriptor sets.", this, (Exception::Type)result);
 		}
 
-		Set::Array::Array(const Descriptor::Pool& Pool, const ACTL::Array<Descriptor::Set::Layout*>& SetLayouts) : 
+		Set::Array::Array(const Descriptor::Pool& Pool, const ACTL::Array<Descriptor::Set::Layout&>& SetLayouts) : 
 			Pool(Pool), 
 			count((unsigned)SetLayouts.GetLength()) {
 			vkSets = new VkDescriptorSet[count];
@@ -99,7 +99,7 @@ namespace SOV {
 			VkDescriptorSetLayout* vkLayouts = new VkDescriptorSetLayout[count];
 
 			for (unsigned i = 0; i < count; i++)
-				vkLayouts[i] = *SetLayouts[i];
+				vkLayouts[i] = SetLayouts[i];
 
 			VkDescriptorSetAllocateInfo vkInfo = {
 				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,

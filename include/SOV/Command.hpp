@@ -138,6 +138,35 @@ namespace SOV {
 				);
 			}
 
+			void CopyBufferToImage(
+				const SOV::Buffer& Source,
+				const Image& Destination,
+				const ACTL::Array<SOV::Buffer::ImageCopyInfo>& copyRegions
+			) const {
+				vkCmdCopyBufferToImage(
+					vkBuffer,
+					Source,
+					Destination,
+					(VkImageLayout)Destination.layout,
+					(unsigned)copyRegions.GetLength(),
+					(const VkBufferImageCopy*)copyRegions.begin()
+				);
+			}
+
+			void CopyBuffer(
+				const SOV::Buffer& Source,
+				const SOV::Buffer& Destination,
+				const ACTL::Array<SOV::Buffer::CopyInfo>& copyRegions
+			) const {
+				vkCmdCopyBuffer(
+					vkBuffer,
+					Source,
+					Destination,
+					(unsigned)copyRegions.GetLength(),
+					(const VkBufferCopy*)copyRegions.begin()
+				);
+			}
+
 		private:
 			VkCommandBuffer vkBuffer;
 

@@ -1,7 +1,18 @@
 #include "Source.hpp"
 
 namespace SOV {
-	Image::View::View(const SOV::Image& Image, const Info& info) : Image(Image) {
+	Image::View::~View() {
+		if (!vkView)
+			return;
+
+		vkDestroyImageView(Image.Device, vkView, nullptr);
+
+		vkView = nullptr;
+	}
+
+	void Image::View::Recreate(const Info& info) {
+		this->~View();
+
 		VkImageViewCreateInfo vkInfo = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 			.image = Image,
@@ -21,15 +32,6 @@ namespace SOV {
 
 		if (result)
 			throw Exception("Failed to create image view.", this, (Exception::Type)result);
-	}
-
-	Image::View::~View() {
-		if (!vkView)
-			return;
-
-		vkDestroyImageView(Image.Device, vkView, nullptr);
-
-		vkView = nullptr;
 	}
 
 	Image::~Image() {
@@ -89,7 +91,18 @@ namespace SOV {
 		vkBindImageMemory(Device, vkImage, vkDeviceMemory, 0);
 	}
 
-	Sampler::Sampler(const SOV::Device& Device, const Info& info) : Device(Device) {
+	Sampler::~Sampler() {
+		if (!vkSampler)
+			return;
+
+		vkDestroySampler(Device, vkSampler, nullptr);
+
+		vkSampler = nullptr;
+	}
+
+	void Sampler::Recreate(const Info& info) {
+		this->~Sampler();
+
 		VkSamplerCreateInfo vkInfo = {
 			.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
 			.magFilter = (VkFilter)info.magFilter,
@@ -113,14 +126,5 @@ namespace SOV {
 
 		if (result)
 			throw Exception("Failed to create sampler.", this, (Exception::Type)result);
-	}
-
-	Sampler::~Sampler() {
-		if (!vkSampler)
-			return;
-
-		vkDestroySampler(Device, vkSampler, nullptr);
-
-		vkSampler = nullptr;
 	}
 }

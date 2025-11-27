@@ -34,7 +34,7 @@ namespace SOV {
 		};
 
 		struct Info {
-			const ImageInfo& imageInfo;
+			ImageInfo imageInfo;
 
 			unsigned minImageCount;
 
@@ -53,15 +53,33 @@ namespace SOV {
 
 		Swapchain& operator =(const Swapchain&) = delete;
 
-		Swapchain(const SOV::Device& Device, const SOV::Surface& Surface, const Info& info);
+		Swapchain(const SOV::Device& Device) : Device(Device) {};
 
-		Swapchain(Swapchain&& Other) noexcept : Device(Other.Device) {
+		Swapchain(const SOV::Device& Device, const SOV::Surface& Surface, const Info& info) : Device(Device) {
+			Recreate(Surface, info);
+		}
+
+		Swapchain(Swapchain&& Other) noexcept : Device(Other.Device), Images(ACTL::move(Other.Images)) {
 			vkSwapchain = Other.vkSwapchain;
 
 			Other.vkSwapchain = nullptr;
 		}
 
 		~Swapchain();
+
+		void Recreate(const SOV::Surface& Surface, const Info& info) {
+			if (!vkSwapchain) {
+				vkSwapchain = CreateSwapchain(Surface, info);
+
+				return;
+			}
+
+			VkSwapchainKHR newSwapchain = CreateSwapchain(Surface, info);
+
+			this->~Swapchain();
+
+			vkSwapchain = newSwapchain;
+		}
 
 		operator VkSwapchainKHR() const {
 			return vkSwapchain;
@@ -79,5 +97,7 @@ namespace SOV {
 		VkSwapchainKHR vkSwapchain = nullptr;
 
 		ACTL::Array<Image> Images = 0;
+
+		VkSwapchainKHR CreateSwapchain(const SOV::Surface& Surface, const Info& info);
 	};
 }

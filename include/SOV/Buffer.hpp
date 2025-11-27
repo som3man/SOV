@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Device.hpp"
+#include "Image.hpp"
 
 namespace SOV {
 	class Buffer {
@@ -16,6 +16,28 @@ namespace SOV {
 			VERTEX_BUFFER         = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 			INDIRECT_BUFFER       = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT,
 			SHADER_DEVICE_ADDRESS = VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		};
+
+		struct ImageCopyInfo {
+			SOV::size bufferOffset;
+
+			unsigned bufferRowLength;
+
+			unsigned bufferImageHeight;
+
+			Image::SubresourceLayers imageSubresourceLayers;
+
+			Offset3 imageOffset;
+
+			Extent3 imageExtent;
+		};
+		
+		struct CopyInfo {
+			SOV::size srcOffset;
+
+			SOV::size dstOffset;
+
+			SOV::size size;
 		};
 
 		struct Info {
@@ -36,6 +58,8 @@ namespace SOV {
 
 		Buffer& operator =(const Buffer&) = delete;
 
+		Buffer(const SOV::Device& Device) : Device(Device) {};
+
 		Buffer(const SOV::Device& Device, const Info& info) : Device(Device) {
 			CreateBuffer(info);
 
@@ -51,6 +75,14 @@ namespace SOV {
 		}
 
 		~Buffer();
+
+		void Recreate(const Info& info) {
+			this->~Buffer();
+
+			CreateBuffer(info);
+
+			AllocateMemory(info);
+		}
 
 		operator VkBuffer() const {
 			return vkBuffer;

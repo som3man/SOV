@@ -123,7 +123,7 @@ namespace SOV {
 	}
 
 	void Device::Init(const ACTL::Array<Extension>& extensions) {
-		const unsigned familyCount = Queues.GetLength();
+		const unsigned familyCount = (unsigned)Queues.GetLength();
 
 		VkDeviceQueueCreateInfo* queueInfos = new VkDeviceQueueCreateInfo[familyCount];
 

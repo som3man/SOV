@@ -154,7 +154,7 @@ namespace SOV {
 
 			Array(const Descriptor::Pool& Pool, const Descriptor::Set::Layout& SetLayout, unsigned count);
 
-			Array(const Descriptor::Pool& Pool, const ACTL::Array<Descriptor::Set::Layout*>& SetLayouts);
+			Array(const Descriptor::Pool& Pool, const ACTL::Array<Descriptor::Set::Layout&>& SetLayouts);
 
 			Array(Array&& Other) noexcept : Pool(Other.Pool), count(Other.count) {
 				vkSets = Other.vkSets;
