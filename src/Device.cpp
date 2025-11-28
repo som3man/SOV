@@ -1,6 +1,51 @@
 #include "Source.hpp"
 
 namespace SOV {
+	Memory::Memory(const SOV::Device& Device, const Requirements& requirements, PropertyFlag propertyFlags) : Device(Device) {
+		VkMemoryAllocateInfo vkInfo = {
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+			.allocationSize = requirements.size,
+			.memoryTypeIndex = Device.PhysicalDevice.FindMemoryType(
+				requirements.memoryTypeBits,
+				propertyFlags
+			).index
+		};
+
+		VkResult result = vkAllocateMemory(Device, &vkInfo, nullptr, &vkMemory);
+
+		if (result)
+			throw Exception("Failed to allocate buffer memory.", this, Exception::Type(result));
+	}
+
+	Memory::~Memory() {
+		if (!vkMemory)
+			return;
+
+		vkFreeMemory(Device, vkMemory, nullptr);
+
+		vkMemory = nullptr;
+	}
+
+	void* Memory::Map() const {
+		void* data;
+
+		vkMapMemory(Device, vkMemory, 0, VK_WHOLE_SIZE, 0, &data);
+
+		return data;
+	}
+
+	void* Memory::Map(SOV::size offset, SOV::size size) const {
+		void* data;
+
+		vkMapMemory(Device, vkMemory, offset, size, 0, &data);
+
+		return data;
+	}
+
+	void Memory::Unmap() const {
+		vkUnmapMemory(Device, vkMemory);
+	}
+
 	const Memory::Type& PhysicalDevice::FindMemoryType(unsigned filter, Memory::PropertyFlag memoryProperties) const {
 		for (auto& type : info.memoryTypes)
 			if ((filter & (1 << type.index)) && (type.properties & memoryProperties) == memoryProperties)

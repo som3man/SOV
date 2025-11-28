@@ -11,17 +11,20 @@ namespace SOV {
 
 	class Fence;
 
-	namespace Memory {
+	class Memory {
+	public:
+		static constexpr Memory* External = (Memory*)~0;
+
 		enum PropertyFlag {
-			NONE             = 0,
-			DEVICE_LOCAL     = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-			HOST_VISIBLE     = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			HOST_COHERENT    = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			HOST_CACHED      = VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+			NONE = 0,
+			DEVICE_LOCAL = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+			HOST_VISIBLE = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			HOST_COHERENT = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+			HOST_CACHED = VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
 			LAZILY_ALLOCATED = VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT,
-			PROTECTED        = VK_MEMORY_PROPERTY_PROTECTED_BIT,
+			PROTECTED = VK_MEMORY_PROPERTY_PROTECTED_BIT,
 		};
-		
+
 		struct Type {
 			friend PhysicalDevice;
 
@@ -46,7 +49,46 @@ namespace SOV {
 		private:
 			Type(const SOV::PhysicalDevice& Device) : PhysicalDevice(PhysicalDevice) {};
 		};
-	}
+
+		struct Requirements {
+			SOV::size size, alignment;
+
+			unsigned memoryTypeBits;
+		};
+
+		const SOV::Device& Device;
+
+		Memory(const Memory&) = delete;
+
+		Memory& operator =(const Memory&) = delete;
+
+		Memory(const SOV::Device& Device, const Requirements& requirements, PropertyFlag propertyFlags);
+
+		Memory(Memory&& Other) noexcept : Device(Other.Device) {
+			vkMemory = Other.vkMemory;
+
+			Other.vkMemory = nullptr;
+		}
+
+		~Memory();
+
+		void* Map() const;
+
+		void* Map(SOV::size offset, SOV::size size) const;
+
+		void Unmap() const;
+
+		operator VkDeviceMemory() const {
+			return vkMemory;
+		}
+
+		operator bool() const {
+			return vkMemory;
+		}
+
+	private:
+		VkDeviceMemory vkMemory = nullptr;
+	};
 
 	class Queue {
 	public:
@@ -180,6 +222,8 @@ namespace SOV {
 
 	class Device {
 	public:
+		using Memory = SOV::Memory;
+
 		const SOV::PhysicalDevice& PhysicalDevice;
 
 		Device(const Device&) = delete;

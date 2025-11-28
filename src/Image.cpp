@@ -38,15 +38,36 @@ namespace SOV {
 		if (!vkImage)
 			return;
 
-		if (hasOwnMemory())
-			vkFreeMemory(Device, vkDeviceMemory, nullptr);
-
 		vkDestroyImage(Device, vkImage, nullptr);
 
 		vkImage = nullptr;
 	}
 
-	void Image::CreateImage(const Info& info) {
+	SOV::Memory::Requirements Image::GetMemoryRequirements() const {
+		VkMemoryRequirements vkReqs;
+
+		vkGetImageMemoryRequirements(Device, vkImage, &vkReqs);
+
+		return {
+			.size = vkReqs.size,
+			.alignment = vkReqs.alignment,
+			.memoryTypeBits = vkReqs.memoryTypeBits
+		};
+	}
+
+	void Image::BindMemory(const SOV::Memory& Memory, SOV::size memoryOffset) {
+		if (this->Memory == SOV::Memory::External)
+			throw Exception("This image is binded to an API controlled memory.", this, Exception::Type::OTHER);
+
+		VkResult result = vkBindImageMemory(Device, vkImage, Memory, memoryOffset);
+
+		if (result)
+			throw Exception("Failed to bind image to memory.", this, Exception::Type(result));
+
+		this->Memory = &Memory;
+	}
+
+	void Image::Init(const Info& info) {
 		VkImageCreateInfo vkInfo = {
 			.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			.imageType = (VkImageType)info.type,
@@ -67,28 +88,6 @@ namespace SOV {
 
 		if (result)
 			throw Exception("Failed to create image.", this, (Exception::Type)result);
-	}
-
-	void Image::AllocateMemory(const Info& info) {
-		VkMemoryRequirements requirements;
-
-		vkGetImageMemoryRequirements(Device, vkImage, &requirements);
-
-		VkMemoryAllocateInfo vkInfo = {
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = requirements.size,
-			.memoryTypeIndex = Device.PhysicalDevice.FindMemoryType(
-				requirements.memoryTypeBits,
-				info.memoryProperties
-			).index
-		};
-
-		VkResult result = vkAllocateMemory(Device, &vkInfo, nullptr, &vkDeviceMemory);
-
-		if (result)
-			throw Exception("Failed to allocate image memory.", this, (Exception::Type)result);
-
-		vkBindImageMemory(Device, vkImage, vkDeviceMemory, 0);
 	}
 
 	Sampler::~Sampler() {

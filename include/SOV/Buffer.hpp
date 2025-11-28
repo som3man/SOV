@@ -48,8 +48,6 @@ namespace SOV {
 			SharingMode sharingMode;
 
 			ACTL::Array<unsigned> queueFamilyIndices;
-
-			Memory::PropertyFlag memoryProperties;
 		};
 
 		const SOV::Device& Device;
@@ -58,30 +56,34 @@ namespace SOV {
 
 		Buffer& operator =(const Buffer&) = delete;
 
-		Buffer(const SOV::Device& Device) : Device(Device) {};
-
 		Buffer(const SOV::Device& Device, const Info& info) : Device(Device) {
-			CreateBuffer(info);
-
-			AllocateMemory(info);
+			Init(info);
 		}
 
-		Buffer(Buffer&& Other) noexcept : Device(Other.Device) {
-			vkBuffer = Other.vkBuffer;
+		Buffer(const SOV::Memory& Memory, SOV::size memoryOffset, const Info& info) : Device(Memory.Device) {
+			Init(info);
 
-			vkDeviceMemory = Other.vkDeviceMemory;
+			BindMemory(Memory, memoryOffset);
+		}
+
+		Buffer(Buffer&& Other) noexcept : Device(Other.Device), Memory(Other.Memory) {
+			vkBuffer = Other.vkBuffer;
 
 			Other.vkBuffer = nullptr;
 		}
 
 		~Buffer();
 
+		SOV::Memory::Requirements GetMemoryRequirements() const;
+
+		void BindMemory(const SOV::Memory& Memory, SOV::size memoryOffset);
+
 		void Recreate(const Info& info) {
+			Memory = nullptr;
+
 			this->~Buffer();
 
-			CreateBuffer(info);
-
-			AllocateMemory(info);
+			Init(info);
 		}
 
 		operator VkBuffer() const {
@@ -92,37 +94,15 @@ namespace SOV {
 			return vkBuffer;
 		}
 
-		VkDeviceMemory getMemory() const {
-			return vkDeviceMemory;
-		}
-
-		void* MapMemory() const {
-			void* data;
-
-			vkMapMemory(Device, vkDeviceMemory, 0, VK_WHOLE_SIZE, 0, &data);
-
-			return data;
-		}
-
-		void* MapMemory(SOV::size offset, SOV::size size) const {
-			void* data;
-
-			vkMapMemory(Device, vkDeviceMemory, offset, size, 0, &data);
-
-			return data;
-		}
-
-		void UnmapMemory() const {
-			vkUnmapMemory(Device, vkDeviceMemory);
+		const SOV::Memory* getMemory() const {
+			return Memory;
 		}
 
 	private:
+		const SOV::Memory* Memory = nullptr;
+
 		VkBuffer vkBuffer = nullptr;
 
-		VkDeviceMemory vkDeviceMemory = nullptr;
-
-		void CreateBuffer(const Info& info);
-
-		void AllocateMemory(const Info& info);
+		void Init(const Info& info);
 	};
 }

@@ -5,14 +5,33 @@ namespace SOV {
 		if (!vkBuffer)
 			return;
 
-		vkFreeMemory(Device, vkDeviceMemory, nullptr);
-
 		vkDestroyBuffer(Device, vkBuffer, nullptr);
 
 		vkBuffer = nullptr;
 	}
 
-	void Buffer::CreateBuffer(const Info& info) {
+	SOV::Memory::Requirements Buffer::GetMemoryRequirements() const {
+		VkMemoryRequirements vkReqs;
+
+		vkGetBufferMemoryRequirements(Device, vkBuffer, &vkReqs);
+
+		return {
+			.size = vkReqs.size,
+			.alignment = vkReqs.alignment,
+			.memoryTypeBits = vkReqs.memoryTypeBits
+		};
+	}
+
+	void Buffer::BindMemory(const SOV::Memory& Memory, SOV::size memoryOffset) {
+		VkResult result = vkBindBufferMemory(Device, vkBuffer, Memory, memoryOffset);
+
+		if (result)
+			throw Exception("Failed to bind buffer to memory.", this, Exception::Type(result));
+
+		this->Memory = &Memory;
+	}
+
+	void Buffer::Init(const Info& info) {
 		VkBufferCreateInfo vkInfo = {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 			.size = info.size,
@@ -26,27 +45,5 @@ namespace SOV {
 
 		if (result)
 			throw Exception("Failed to create buffer.", this, Exception::Type(result));
-	}
-
-	void Buffer::AllocateMemory(const Info& info) {
-		VkMemoryRequirements requirements;
-
-		vkGetBufferMemoryRequirements(Device, vkBuffer, &requirements);
-
-		VkMemoryAllocateInfo vkInfo = {
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-			.allocationSize = requirements.size,
-			.memoryTypeIndex = Device.PhysicalDevice.FindMemoryType(
-				requirements.memoryTypeBits,
-				info.memoryProperties
-			).index
-		};
-
-		VkResult result = vkAllocateMemory(Device, &vkInfo, nullptr, &vkDeviceMemory);
-
-		if (result)
-			throw Exception("Failed to allocate buffer memory.", this, Exception::Type(result));
-
-		vkBindBufferMemory(Device, vkBuffer, vkDeviceMemory, 0);
 	}
 }

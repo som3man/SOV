@@ -54,69 +54,9 @@ namespace SOV {
 			PLANE_2_BIT = VK_IMAGE_ASPECT_PLANE_2_BIT,
 		};
 
-		class View {
-		public:
-			friend Image;
+		class View;
 
-			enum class Type {
-				VIEW_1D         = VK_IMAGE_VIEW_TYPE_1D,
-				VIEW_2D         = VK_IMAGE_VIEW_TYPE_2D,
-				VIEW_3D         = VK_IMAGE_VIEW_TYPE_3D,
-				VIEW_CUBE       = VK_IMAGE_VIEW_TYPE_CUBE,
-				VIEW_1D_ARRAY   = VK_IMAGE_VIEW_TYPE_1D_ARRAY,
-				VIEW_2D_ARRAY   = VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-				VIEW_CUBE_ARRAY = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY,
-			};
-
-			struct Info {
-				Type type;
-
-				ComponentMapping componentMapping;
-
-				AspectFlag aspectFlags;
-
-				unsigned mipLevelCount;
-
-				unsigned baseMipLevel;
-
-				unsigned arrayLayerCount;
-
-				unsigned baseArrayLayer;
-			};
-
-			const SOV::Image& Image;
-
-			View(const View&) = delete;
-
-			View& operator =(const View&) = delete;
-
-			View(const SOV::Image& Image) : Image(Image) {};
-
-			View(const SOV::Image& Image, const Info& info) : Image(Image) {
-				Recreate(info);
-			}
-
-			View(View&& Other) noexcept : Image(Other.Image) {
-				vkView = Other.vkView;
-
-				Other.vkView = nullptr;
-			}
-
-			~View();
-
-			void Recreate(const Info& info);
-
-			operator VkImageView() const {
-				return vkView;
-			}
-
-			operator bool() const {
-				return vkView;
-			}
-
-		private:
-			VkImageView vkView = nullptr;
-		};
+		class Allocated;
 
 		struct SubresourceLayers {
 			AspectFlag aspectFlags;
@@ -132,6 +72,8 @@ namespace SOV {
 			Type type;
 
 			Format format;
+
+			Layout layout;
 
 			Extent3 extent;
 
@@ -162,27 +104,31 @@ namespace SOV {
 
 		Image& operator =(const Image&) = delete;
 
-		Image(const SOV::Device& Device, const Info& info, Layout layout) :
-			Device(Device), 
-			format(info.format), 
-			layout(layout) {
-			CreateImage(info);
+		Image(const SOV::Device& Device, const Info& info) : Device(Device), layout(info.layout), format(info.format) {
+			Init(info);
+		}
 
-			AllocateMemory(info);
+		Image(const SOV::Memory& Memory, SOV::size memoryOffset, const Info& info) : Device(Memory.Device), layout(info.layout), format(info.format) {
+			Init(info);
+
+			BindMemory(Memory, memoryOffset);
 		}
 
 		Image(Image&& Other) noexcept : 
-			Device(Other.Device), 
+			Device(Other.Device),
+			Memory(Other.Memory),
 			format(Other.format),
 			layout(Other.layout) {
 			vkImage = Other.vkImage;
-
-			vkDeviceMemory = Other.vkDeviceMemory;
 
 			Other.vkImage = nullptr;
 		}
 
 		~Image();
+
+		SOV::Memory::Requirements GetMemoryRequirements() const;
+
+		void BindMemory(const SOV::Memory& Memory, SOV::size memoryOffset);
 
 		operator VkImage() const {
 			return vkImage;
@@ -192,24 +138,86 @@ namespace SOV {
 			return vkImage;
 		}
 
-		bool hasOwnMemory() const {
-			return vkDeviceMemory;
+		bool hasExternalMemory() const {
+			return Memory == SOV::Memory::External;
 		}
 
-		VkDeviceMemory getMemory() const {
-			return vkDeviceMemory;
+		const SOV::Memory* getMemory() const {
+			return Memory;
 		}
 
 	private:
+		const SOV::Memory* Memory = nullptr;
+
 		VkImage vkImage = nullptr;
 
-		VkDeviceMemory vkDeviceMemory = nullptr;
+		Image(const SOV::Device& Device, Format format) : Device(Device), Memory(SOV::Memory::External), format(format) {};
 
-		Image(const SOV::Device& Device, Format format) : Device(Device), format(format) {};
+		void Init(const Info& info);
+	};
 
-		void CreateImage(const Info& info);
+	class Image::View {
+	public:
+		friend Image;
 
-		void AllocateMemory(const Info& info);
+		enum class Type {
+			VIEW_1D = VK_IMAGE_VIEW_TYPE_1D,
+			VIEW_2D = VK_IMAGE_VIEW_TYPE_2D,
+			VIEW_3D = VK_IMAGE_VIEW_TYPE_3D,
+			VIEW_CUBE = VK_IMAGE_VIEW_TYPE_CUBE,
+			VIEW_1D_ARRAY = VK_IMAGE_VIEW_TYPE_1D_ARRAY,
+			VIEW_2D_ARRAY = VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+			VIEW_CUBE_ARRAY = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY,
+		};
+
+		struct Info {
+			Type type;
+
+			ComponentMapping componentMapping;
+
+			AspectFlag aspectFlags;
+
+			unsigned mipLevelCount;
+
+			unsigned baseMipLevel;
+
+			unsigned arrayLayerCount;
+
+			unsigned baseArrayLayer;
+		};
+
+		const SOV::Image& Image;
+
+		View(const View&) = delete;
+
+		View& operator =(const View&) = delete;
+
+		View(const SOV::Image& Image) : Image(Image) {};
+
+		View(const SOV::Image& Image, const Info& info) : Image(Image) {
+			Recreate(info);
+		}
+
+		View(View&& Other) noexcept : Image(Other.Image) {
+			vkView = Other.vkView;
+
+			Other.vkView = nullptr;
+		}
+
+		~View();
+
+		void Recreate(const Info& info);
+
+		operator VkImageView() const {
+			return vkView;
+		}
+
+		operator bool() const {
+			return vkView;
+		}
+
+	private:
+		VkImageView vkView = nullptr;
 	};
 
 	class Sampler {
